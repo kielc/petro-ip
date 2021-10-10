@@ -35,6 +35,15 @@ class WellIP:
     cond_ip_365_m3d: float = float("nan")
     water_ip_365_m3d: float = float("nan")
 
+    def __setattr__(self, name, value):
+        # convert to built-in types, cannot json serialize numpy types
+        if isinstance(value, np.floating):
+            super().__setattr__(name, float(value))
+        elif isinstance(value, np.integer):
+            super().__setattr__(name, int(value))
+        else:
+            super().__setattr__(name, value)
+
 
 def calculate_well_ip(df_one_well: pd.DataFrame) -> WellIP:
     """Calculate intial production information for a single well.
@@ -75,6 +84,7 @@ def calculate_well_ip(df_one_well: pd.DataFrame) -> WellIP:
             & (df_one_well["Total_prod_vol (m3)"] > 0)
         ].empty
     ):
+        # bounds_error=False, out of bounds values are assigned default fill_value of NaN
         interp_func_gas = interpolate.interp1d(
             df_one_well["Prod_days_cum"],
             df_one_well["Gas_prod_cum (e3m3)"],
@@ -192,7 +202,7 @@ def wellip_to_dict(well_ip: WellIP, units: str = "metric") -> dict:
         }
 
     for key, value in d.items():
-        if isinstance(value, np.floating):
-            d[key] = round(float(value), 1)
+        if isinstance(value, float):
+            d[key] = round(value, 1)
 
     return d
